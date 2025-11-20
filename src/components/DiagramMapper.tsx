@@ -1,32 +1,57 @@
 "use client";
-import { Box, Image, Tooltip } from "@chakra-ui/react";
-import { motion } from "framer-motion";
+import React, { useState } from 'react';
+import { Box, Image, Tooltip } from '@chakra-ui/react';
+import { motion } from 'framer-motion';
 
-interface Hotspot { id: string; label: string; cx: number; cy: number; r: number; }
+interface Hotspot {
+  id: string;
+  label: string;
+  cx: number; // % from left
+  cy: number; // % from top
+  r: number;  // radius in pixels
+}
 
-export default function DiagramMapper({ src, hotspots, onPartClick }: { src: string, hotspots: Hotspot[], onPartClick: (lbl: string) => void }) {
+interface Props {
+  src: string;
+  hotspots: Hotspot[];
+  onPartClick: (label: string) => void;
+}
+
+// Create a motion-enabled Box correctly to avoid type conflicts
+const MotionBox = motion(Box);
+
+export default function DiagramMapper({ src, hotspots, onPartClick }: Props) {
+  const [hovered, setHovered] = useState<string | null>(null);
+
   return (
-    <Box position="relative" borderRadius="3xl" overflow="hidden" boxShadow="lg" border="4px solid" borderColor="white">
-      <Image src={src} alt="Anatomy" w="100%" />
-      <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-        {hotspots.map((spot) => (
-          <motion.circle
-            key={spot.id}
-            cx={`${spot.cx}%`}
-            cy={`${spot.cy}%`}
-            r={spot.r}
-            fill="rgba(255, 255, 255, 0.3)"
-            stroke="#8DA399"
-            strokeWidth="2"
-            style={{ cursor: 'pointer' }}
-            whileHover={{ scale: 1.2, fill: "rgba(141, 163, 153, 0.6)" }}
+    <Box position="relative" w="full" maxW="800px" mx="auto">
+      <Image src={src} alt="Anatomical diagram" borderRadius="xl" />
+      
+      {hotspots.map(spot => (
+        <Tooltip key={spot.id} label={spot.label} placement="top" hasArrow>
+          <MotionBox
+            position="absolute"
+            left={`${spot.cx}%`}
+            top={`${spot.cy}%`}
+            w={`${spot.r * 2}px`}
+            h={`${spot.r * 2}px`}
+            borderRadius="full"
+            bg="rgba(0, 150, 255, 0.4)"
+            border="2px solid white"
+            cursor="pointer"
+            transform="translate(-50%, -50%)"
+            onMouseEnter={() => setHovered(spot.id)}
+            onMouseLeave={() => setHovered(null)}
             onClick={() => onPartClick(spot.label)}
+            
+            // Framer Motion props now work correctly without conflict
+            whileHover={{ scale: 1.2, filter: 'brightness(1.2)' }}
+            transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+            
+            style={{
+              boxShadow: '0 0 10px rgba(0,0,0,0.3)',
+            }}
           />
-        ))}
-      </svg>
-      {hotspots.map((spot) => (
-        <Tooltip key={spot.id} label={spot.label} bg="cottage.Sage500">
-          <Box position="absolute" left={`${spot.cx}%`} top={`${spot.cy}%`} w={`${spot.r*2}px`} h={`${spot.r*2}px`} transform="translate(-50%,-50%)" pointerEvents="none" />
         </Tooltip>
       ))}
     </Box>

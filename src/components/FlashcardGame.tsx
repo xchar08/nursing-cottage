@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Box, VStack, Text, Button, Badge, Input, Textarea, 
   Radio, RadioGroup, Stack, Checkbox, CheckboxGroup, HStack, 
-  Select, Card, CardBody
+  Select, Card, CardBody, Image
 } from "@chakra-ui/react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
@@ -11,16 +11,17 @@ import { HeartModel, SkeletonModel } from "./models/ProceduralModels";
 
 interface Question {
   id: string;
-  type: "multiple_choice" | "sata" | "fill_in_blank" | "matching" | "frq" | "3d_model_matching";
+  type: "multiple_choice" | "sata" | "fill_in_blank" | "matching" | "frq" | "3d_model_matching" | "diagram_mcq";
   question: string;
   options?: string[];
   correctAnswer?: string; 
-  answer?: string; // Fallback if AI uses 'answer'
+  answer?: string; 
   correctAnswers?: string[]; 
   pairs?: { left: string; right: string }[]; 
   model?: string; 
   correctLabel?: string; 
-  modelAnswer?: string; 
+  modelAnswer?: string;
+  imageUrl?: string;
 }
 
 export default function FlashcardGame({ questions, onFeedback }: { questions: Question[], onFeedback: (isCorrect: boolean) => void }) {
@@ -34,8 +35,7 @@ export default function FlashcardGame({ questions, onFeedback }: { questions: Qu
 
   const q = questions[index];
 
-  // --- UNIVERSAL ANSWER GETTER ---
-  // This fixes the "undefined" error by checking all possible fields
+  // Universal Answer Getter
   const getCorrectAnswer = (q: Question) => {
     if (q.type === "3d_model_matching") return q.correctLabel;
     return q.correctAnswer || q.answer || "Error: Answer missing";
@@ -82,6 +82,7 @@ export default function FlashcardGame({ questions, onFeedback }: { questions: Qu
 
     switch (q.type) {
       case "multiple_choice":
+      case "diagram_mcq":
         // Smart Check: Matches exact string OR Letter (A/B/C)
         if (selected === rightAnswer) {
           correct = true;
@@ -93,7 +94,6 @@ export default function FlashcardGame({ questions, onFeedback }: { questions: Qu
         break;
 
       case "fill_in_blank":
-        // Fuzzy match (trim + lowercase)
         correct = (selected as string)?.toLowerCase().trim() === rightAnswer?.toLowerCase().trim();
         break;
 
@@ -137,16 +137,23 @@ export default function FlashcardGame({ questions, onFeedback }: { questions: Qu
 
         {/* --- RENDERERS --- */}
 
-        {q.type === "multiple_choice" && (
-          <RadioGroup onChange={setSelected} value={selected}>
-            <Stack spacing={3}>
-              {q.options?.map((opt) => (
-                <Radio key={opt} value={opt} isDisabled={isAnswered} colorScheme="green" size="lg">
-                  {opt}
-                </Radio>
-              ))}
-            </Stack>
-          </RadioGroup>
+        {(q.type === "multiple_choice" || q.type === "diagram_mcq") && (
+          <VStack spacing={4} align="stretch">
+            {q.type === "diagram_mcq" && q.imageUrl && (
+               <Box borderRadius="lg" overflow="hidden" border="1px solid" borderColor="gray.200" maxH="300px">
+                  <Image src={q.imageUrl} alt="Question diagram" objectFit="contain" w="full" h="full"/>
+               </Box>
+            )}
+            <RadioGroup onChange={setSelected} value={selected}>
+              <Stack spacing={3}>
+                {q.options?.map((opt) => (
+                  <Radio key={opt} value={opt} isDisabled={isAnswered} colorScheme="green" size="lg">
+                    {opt}
+                  </Radio>
+                ))}
+              </Stack>
+            </RadioGroup>
+          </VStack>
         )}
 
         {q.type === "sata" && (
