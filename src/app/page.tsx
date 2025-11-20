@@ -28,7 +28,7 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
-  // --- HOTSPOT CONFIGURATIONS ---
+  // --- HOTSPOT CONFIGURATIONS (All 9 Systems) ---
   const allHotspots: Record<string, any[]> = {
     heart: [
       { id: '1', label: 'Superior Vena Cava', cx: 38, cy: 20, r: 14 },
@@ -42,35 +42,64 @@ export default function App() {
       { id: '9', label: 'Pulmonary Veins', cx: 78, cy: 35, r: 12 }
     ],
     lungs: [
-      { id: '1', label: 'Trachea', cx: 50, cy: 20, r: 15 },
-      { id: '2', label: 'Right Bronchus', cx: 42, cy: 35, r: 12 },
-      { id: '3', label: 'Left Bronchus', cx: 58, cy: 35, r: 12 },
+      { id: '1', label: 'Trachea', cx: 50, cy: 15, r: 15 },
+      { id: '2', label: 'Right Bronchus', cx: 42, cy: 30, r: 12 },
+      { id: '3', label: 'Left Bronchus', cx: 58, cy: 30, r: 12 },
       { id: '4', label: 'Right Upper Lobe', cx: 30, cy: 45, r: 25 },
       { id: '5', label: 'Left Upper Lobe', cx: 70, cy: 45, r: 25 },
       { id: '6', label: 'Diaphragm', cx: 50, cy: 85, r: 30 }
     ],
     digestive: [
-      { id: '1', label: 'Esophagus', cx: 50, cy: 10, r: 15 },
-      { id: '2', label: 'Liver', cx: 35, cy: 25, r: 25 },
-      { id: '3', label: 'Stomach', cx: 65, cy: 30, r: 22 },
-      { id: '4', label: 'Large Intestine', cx: 50, cy: 55, r: 30 },
-      { id: '5', label: 'Small Intestine', cx: 50, cy: 70, r: 25 }
+      { id: '1', label: 'Esophagus', cx: 50, cy: 10, r: 12 },
+      { id: '2', label: 'Liver', cx: 35, cy: 30, r: 25 },
+      { id: '3', label: 'Stomach', cx: 60, cy: 35, r: 20 },
+      { id: '4', label: 'Large Intestine', cx: 50, cy: 55, r: 28 },
+      { id: '5', label: 'Small Intestine', cx: 50, cy: 70, r: 22 }
     ],
     brain: [
-      { id: '1', label: 'Frontal Lobe', cx: 30, cy: 30, r: 25 },
-      { id: '2', label: 'Parietal Lobe', cx: 60, cy: 20, r: 20 },
+      { id: '1', label: 'Frontal Lobe', cx: 25, cy: 35, r: 22 },
+      { id: '2', label: 'Parietal Lobe', cx: 55, cy: 20, r: 20 },
       { id: '3', label: 'Occipital Lobe', cx: 85, cy: 45, r: 18 },
       { id: '4', label: 'Temporal Lobe', cx: 50, cy: 55, r: 20 },
-      { id: '5', label: 'Cerebellum', cx: 75, cy: 70, r: 18 },
-      { id: '6', label: 'Brainstem', cx: 50, cy: 80, r: 15 }
+      { id: '5', label: 'Cerebellum', cx: 75, cy: 75, r: 18 },
+      { id: '6', label: 'Brainstem', cx: 50, cy: 85, r: 12 }
     ],
     kidneys: [
-      { id: '1', label: 'Cortex', cx: 25, cy: 30, r: 20 },
-      { id: '2', label: 'Medulla', cx: 75, cy: 30, r: 20 },
+      { id: '1', label: 'Cortex', cx: 25, cy: 35, r: 18 },
+      { id: '2', label: 'Medulla', cx: 75, cy: 35, r: 18 },
       { id: '3', label: 'Renal Pelvis', cx: 50, cy: 50, r: 18 },
-      { id: '4', label: 'Renal Artery (Red)', cx: 55, cy: 65, r: 10 },
-      { id: '5', label: 'Renal Vein (Blue)', cx: 45, cy: 65, r: 10 },
+      { id: '4', label: 'Renal Artery', cx: 55, cy: 65, r: 10 },
+      { id: '5', label: 'Renal Vein', cx: 45, cy: 65, r: 10 },
       { id: '6', label: 'Ureter', cx: 50, cy: 90, r: 12 }
+    ],
+    eye: [
+      { id: '1', label: 'Cornea', cx: 15, cy: 50, r: 10 },
+      { id: '2', label: 'Lens', cx: 28, cy: 50, r: 12 },
+      { id: '3', label: 'Retina', cx: 75, cy: 50, r: 25 },
+      { id: '4', label: 'Optic Nerve', cx: 90, cy: 55, r: 12 },
+      { id: '5', label: 'Iris', cx: 22, cy: 40, r: 8 }
+    ],
+    ear: [
+      { id: '1', label: 'Pinna (Outer Ear)', cx: 15, cy: 40, r: 20 },
+      { id: '2', label: 'Ear Canal', cx: 35, cy: 55, r: 12 },
+      { id: '3', label: 'Tympanic Membrane', cx: 48, cy: 58, r: 10 },
+      { id: '4', label: 'Cochlea', cx: 65, cy: 65, r: 15 },
+      { id: '5', label: 'Semicircular Canals', cx: 60, cy: 40, r: 12 }
+    ],
+    skin: [
+      { id: '1', label: 'Epidermis', cx: 50, cy: 15, r: 30 },
+      { id: '2', label: 'Dermis', cx: 50, cy: 45, r: 30 },
+      { id: '3', label: 'Hair Follicle', cx: 35, cy: 50, r: 10 },
+      { id: '4', label: 'Sebaceous Gland', cx: 40, cy: 40, r: 8 },
+      { id: '5', label: 'Subcutaneous Fat', cx: 50, cy: 80, r: 30 }
+    ],
+    neuron: [
+      { id: '1', label: 'Cell Body (Soma)', cx: 25, cy: 40, r: 20 },
+      { id: '2', label: 'Nucleus', cx: 25, cy: 40, r: 8 },
+      { id: '3', label: 'Dendrites', cx: 15, cy: 30, r: 15 },
+      { id: '4', label: 'Axon', cx: 55, cy: 50, r: 10 },
+      { id: '5', label: 'Myelin Sheath', cx: 55, cy: 50, r: 12 },
+      { id: '6', label: 'Axon Terminal', cx: 85, cy: 60, r: 15 }
     ]
   };
 
@@ -314,16 +343,24 @@ export default function App() {
                 <HStack justify="space-between" w="full" maxW="800px">
                    <Heading size="md" color="cottage.Sage600">Micro-Anatomy Reference</Heading>
                    <Select 
-                     w="200px" 
+                     w="250px" 
                      value={currentDiagram} 
                      onChange={(e) => setCurrentDiagram(e.target.value)}
                      bg="white"
                    >
-                     <option value="heart">Heart</option>
-                     <option value="lungs">Lungs</option>
-                     <option value="digestive">Digestive System</option>
-                     <option value="brain">Brain</option>
-                     <option value="kidneys">Kidneys</option>
+                     <optgroup label="Major Organs">
+                       <option value="heart">Heart</option>
+                       <option value="lungs">Lungs</option>
+                       <option value="brain">Brain</option>
+                       <option value="kidneys">Kidneys</option>
+                       <option value="digestive">Digestive System</option>
+                     </optgroup>
+                     <optgroup label="Sensory & Nervous">
+                       <option value="eye">Eye</option>
+                       <option value="ear">Ear</option>
+                       <option value="skin">Skin</option>
+                       <option value="neuron">Neuron</option>
+                     </optgroup>
                    </Select>
                 </HStack>
                 
