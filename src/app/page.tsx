@@ -167,6 +167,28 @@ export default function App() {
     }
   };
 
+  // --- DELETE CLASS HANDLER ---
+  const deleteClass = async (classId: string) => {
+    if (!confirm("Are you sure? This will delete all study sets in this class.")) return;
+
+    const { error } = await supabase.from('classes').delete().eq('id', classId);
+    
+    if (error) {
+      toast({ title: "Error deleting class", description: error.message, status: "error" });
+      return;
+    }
+
+    const updatedClasses = classes.filter(c => c.id !== classId);
+    setClasses(updatedClasses);
+
+    if (selectedClassId === classId) {
+      setSelectedClassId(updatedClasses.length > 0 ? updatedClasses[0].id : "");
+      if (updatedClasses.length === 0) setStudySets([]);
+    }
+
+    toast({ title: "Class deleted", status: "success" });
+  };
+
   const generate = async () => {
     if (!notes.trim()) {
       toast({ title: "Please enter study notes first.", status: "warning" });
@@ -365,11 +387,38 @@ export default function App() {
                   </MenuButton>
                   <MenuList>
                     {classes.map(c => (
-                      <MenuItem key={c.id} onClick={() => setSelectedClassId(c.id)}>
-                        <BookOpen size={16} style={{ marginRight: 8 }} /> {c.name}
-                      </MenuItem>
+                      <HStack key={c.id} justify="space-between" px={3} py={2} _hover={{ bg: "gray.50" }} role="group">
+                        {/* Select Class */}
+                        <Box 
+                          flex="1" 
+                          cursor="pointer" 
+                          onClick={() => setSelectedClassId(c.id)}
+                          fontWeight={selectedClassId === c.id ? "bold" : "normal"}
+                          color={selectedClassId === c.id ? "cottage.Sage600" : "inherit"}
+                        >
+                          <HStack>
+                            <BookOpen size={16} />
+                            <Text>{c.name}</Text>
+                          </HStack>
+                        </Box>
+
+                        {/* Delete Class */}
+                        <IconButton
+                          aria-label="Delete class"
+                          icon={<Trash2 size={14} />}
+                          size="xs"
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={(e) => {
+                            e.stopPropagation(); // Prevent selection when deleting
+                            deleteClass(c.id);
+                          }}
+                        />
+                      </HStack>
                     ))}
-                    <Divider />
+                    
+                    <Divider my={2} />
+                    
                     <MenuItem icon={<Plus size={16} />} onClick={onClassModalOpen}>
                       New Class
                     </MenuItem>
