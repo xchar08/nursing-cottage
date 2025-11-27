@@ -3,8 +3,8 @@
 import OpenAI from "openai";
 
 const client = new OpenAI({
-  baseURL: "https://api.studio.nebius.ai/v1/",
-  apiKey: process.env.NEBIUS_API_KEY,
+  baseURL: "https://api.cerebras.ai/v1",
+  apiKey: process.env.CEREBRAS_API_KEY,
 });
 
 export async function enhanceScannedText(rawText: string) {
@@ -12,7 +12,7 @@ export async function enhanceScannedText(rawText: string) {
 
   try {
     const completion = await client.chat.completions.create({
-      model: "meta-llama/Llama-3.3-70B-Instruct", 
+      model: "llama-3.3-70b", // UPDATED MODEL ID
       temperature: 0.1, 
       messages: [
         {

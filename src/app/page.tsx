@@ -2,12 +2,13 @@
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { 
   Container, Heading, VStack, HStack, Text, 
-  Textarea, Button, Stack, Box, 
+  Textarea, Button, Box, 
   useToast, Input, Progress, Select, 
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, 
   ModalCloseButton, ModalFooter, useDisclosure, Divider, Icon,
   Menu, MenuButton, MenuList, MenuItem, IconButton,
-  SimpleGrid, Badge, Wrap, WrapItem, Tag, TagLabel, TagCloseButton
+  SimpleGrid, Badge, Wrap, WrapItem, Tag, TagLabel, TagCloseButton,
+  Radio, RadioGroup, Stack
 } from "@chakra-ui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
@@ -15,7 +16,7 @@ import { OrbitControls, Environment } from "@react-three/drei";
 import { 
   BookOpen, Box as BoxIcon, Activity, UploadCloud, 
   Plus, LogOut, Save, Mail, ChevronDown, Trash2, FolderOpen,
-  Clock, FileText, Smartphone
+  Clock, Smartphone, Stethoscope, BookType
 } from "lucide-react";
 import { FaGoogle } from "react-icons/fa"; 
 
@@ -47,6 +48,7 @@ export default function App() {
   const [currentDiagram, setCurrentDiagram] = useState("heart");
   const [notes, setNotes] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>(["multiple_choice", "3d_model_matching"]);
+  const [examMode, setExamMode] = useState<"vocab" | "practical">("vocab"); // NEW STATE
   const [quiz, setQuiz] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -139,7 +141,6 @@ export default function App() {
   };
 
   const fetchStudySets = async () => {
-    // Only fetch from quizzes table (unified storage)
     const { data } = await supabase
       .from('quizzes')
       .select('*')
@@ -167,7 +168,6 @@ export default function App() {
     }
   };
 
-  // --- DELETE CLASS HANDLER ---
   const deleteClass = async (classId: string) => {
     if (!confirm("Are you sure? This will delete all study sets in this class.")) return;
 
@@ -198,7 +198,8 @@ export default function App() {
     try {
       const res = await fetch("/api/generate-quiz", { 
         method: "POST", 
-        body: JSON.stringify({ text: notes, types: selectedTypes }) 
+        // --- UPDATED: Sending examMode to API ---
+        body: JSON.stringify({ text: notes, types: selectedTypes, mode: examMode }) 
       });
       const data = await res.json();
       
@@ -223,13 +224,12 @@ export default function App() {
       return;
     }
 
-    // Save as ONE unified study set (quiz + notes together)
     await supabase.from('quizzes').insert([{
       user_id: user.id,
       class_id: selectedClassId,
       title: studySetName,
       data: quiz,
-      notes: notes // Store notes alongside quiz
+      notes: notes
     }]);
 
     toast({ title: "Saved!", description: `"${studySetName}" added to your class.`, status: "success" });
@@ -241,7 +241,7 @@ export default function App() {
   const loadStudySet = (set: any) => {
     setSelectedStudySet(set);
     setQuiz(set.data);
-    setNotes(set.notes || ''); // Load both quiz and notes
+    setNotes(set.notes || '');
     setTab('quiz');
     toast({ title: `Loaded "${set.title}"`, status: "info" });
   };
@@ -334,7 +334,6 @@ export default function App() {
     { id: 'diagram_mcq', label: 'Diagram Labeling', color: 'teal' }
   ];
 
-  // --- RENDER: LOGIN SCREEN ---
   if (!user) {
     return (
       <Box minH="100vh" bg="cottage.bg" display="flex" alignItems="center" justifyContent="center" p={4}>
@@ -343,24 +342,20 @@ export default function App() {
             <Heading color="cottage.Sage600" fontSize="3xl">The Nursing Cottage 🌿</Heading>
             <Text color="gray.500" textAlign="center">Your cozy space for serious study.</Text>
           </VStack>
-
           <Button w="full" variant="outline" leftIcon={<Icon as={FaGoogle} />} onClick={handleGoogleLogin} size="lg" borderColor="gray.300" _hover={{ bg: "gray.50" }}>
             Continue with Google
           </Button>
-          
           <HStack w="full" py={2}>
             <Divider />
             <Text fontSize="xs" color="gray.400" whiteSpace="nowrap">OR USE EMAIL</Text>
             <Divider />
           </HStack>
-          
           <VStack w="full" spacing={3}>
             <Input placeholder="name@example.com" value={email} onChange={e => setEmail(e.target.value)} size="lg" bg="gray.50" borderRadius="md" />
             <Button w="full" colorScheme="green" bg="cottage.Sage500" size="lg" isLoading={loadingAuth} onClick={handleLogin} leftIcon={<Mail size={18} />}>
               Send Magic Link
             </Button>
           </VStack>
-
           <Button variant="link" color="gray.400" size="sm" onClick={() => setUser({ id: 'guest', email: 'Guest' })}>
             Continue as Guest
           </Button>
@@ -369,7 +364,6 @@ export default function App() {
     );
   }
 
-  // --- RENDER: MAIN APP ---
   return (
     <Box minH="100vh" pb={20} bg="cottage.bg">
       <FeedbackGif state={feedback} reset={() => setFeedback('idle')} />
@@ -388,7 +382,6 @@ export default function App() {
                   <MenuList>
                     {classes.map(c => (
                       <HStack key={c.id} justify="space-between" px={3} py={2} _hover={{ bg: "gray.50" }} role="group">
-                        {/* Select Class */}
                         <Box 
                           flex="1" 
                           cursor="pointer" 
@@ -401,8 +394,6 @@ export default function App() {
                             <Text>{c.name}</Text>
                           </HStack>
                         </Box>
-
-                        {/* Delete Class */}
                         <IconButton
                           aria-label="Delete class"
                           icon={<Trash2 size={14} />}
@@ -410,15 +401,13 @@ export default function App() {
                           variant="ghost"
                           colorScheme="red"
                           onClick={(e) => {
-                            e.stopPropagation(); // Prevent selection when deleting
+                            e.stopPropagation();
                             deleteClass(c.id);
                           }}
                         />
                       </HStack>
                     ))}
-                    
                     <Divider my={2} />
-                    
                     <MenuItem icon={<Plus size={16} />} onClick={onClassModalOpen}>
                       New Class
                     </MenuItem>
@@ -426,7 +415,6 @@ export default function App() {
                 </Menu>
               )}
             </HStack>
-            
             <HStack>
               <Text color="whiteAlpha.800" fontSize="sm">{user.email?.split('@')[0] || 'Guest'}</Text>
               <IconButton aria-label="Logout" icon={<LogOut size={18} />} size="sm" variant="ghost" color="white" onClick={handleLogout} />
@@ -436,7 +424,6 @@ export default function App() {
       </Box>
 
       <Container maxW="container.xl" mt={8}>
-        {/* NAVIGATION */}
         <HStack spacing={4} mb={8} justify="center" wrap="wrap">
           {[
             { id: "quiz", icon: BookOpen, label: "Quiz Studio" },
@@ -459,7 +446,6 @@ export default function App() {
           ))}
         </HStack>
 
-        {/* TAB CONTENT */}
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
             
@@ -488,17 +474,36 @@ export default function App() {
                   {uploadProgress > 0 && <Progress value={uploadProgress} colorScheme="green" size="sm" borderRadius="full" mb={4} />}
                   <Textarea placeholder="Paste notes here OR upload files..." rows={8} bg="gray.50" value={notes} onChange={(e) => setNotes(e.target.value)} mb={6} borderRadius="lg" />
 
-                  <Heading size="md" mb={3} color="cottage.Sage600">Assessment Types</Heading>
-                  <Wrap spacing={3} mb={6}>
-                    {assessmentTypes.map(type => (
-                      <WrapItem key={type.id}>
-                        <Tag size="lg" colorScheme={selectedTypes.includes(type.id) ? type.color : 'gray'} variant={selectedTypes.includes(type.id) ? 'solid' : 'outline'} cursor="pointer" onClick={() => toggleType(type.id)}>
-                          <TagLabel>{type.label}</TagLabel>
-                          {selectedTypes.includes(type.id) && <TagCloseButton />}
-                        </Tag>
-                      </WrapItem>
-                    ))}
-                  </Wrap>
+                  {/* --- NEW EXAM MODE TOGGLE --- */}
+                  <HStack align="start" spacing={10} mb={6} wrap="wrap">
+                    <Box flex="1">
+                        <Heading size="md" mb={3} color="cottage.Sage600">Assessment Types</Heading>
+                        <Wrap spacing={3}>
+                            {assessmentTypes.map(type => (
+                            <WrapItem key={type.id}>
+                                <Tag size="lg" colorScheme={selectedTypes.includes(type.id) ? type.color : 'gray'} variant={selectedTypes.includes(type.id) ? 'solid' : 'outline'} cursor="pointer" onClick={() => toggleType(type.id)}>
+                                <TagLabel>{type.label}</TagLabel>
+                                {selectedTypes.includes(type.id) && <TagCloseButton />}
+                                </Tag>
+                            </WrapItem>
+                            ))}
+                        </Wrap>
+                    </Box>
+
+                    <Box minW="250px">
+                        <Heading size="md" mb={3} color="cottage.Sage600">Exam Mode</Heading>
+                        <RadioGroup onChange={(val: any) => setExamMode(val)} value={examMode}>
+                            <Stack direction="column">
+                                <Radio value="vocab" colorScheme="green">
+                                    <HStack><BookType size={16}/><Text>Vocabulary & Definitions</Text></HStack>
+                                </Radio>
+                                <Radio value="practical" colorScheme="purple">
+                                    <HStack><Stethoscope size={16}/><Text>Clinical Application</Text></HStack>
+                                </Radio>
+                            </Stack>
+                        </RadioGroup>
+                    </Box>
+                  </HStack>
 
                   <Button w="full" size="lg" isLoading={loading} onClick={generate} bg="cottage.Sage500" color="white" _hover={{ bg: "cottage.Sage600" }} leftIcon={<Save size={18} />}>
                     Generate Assessment
@@ -513,6 +518,7 @@ export default function App() {
               </VStack>
             )}
 
+            {/* Other tabs (Sets, Library, Diagrams) remain the same... */}
             {tab === "sets" && (
               <Box>
                 <Heading size="lg" mb={6} color="cottage.Sage600">Your Study Sets</Heading>
@@ -580,7 +586,7 @@ export default function App() {
         </AnimatePresence>
       </Container>
 
-      {/* DOCUMENT SCANNER MODAL */}
+      {/* MODALS */}
       <Modal isOpen={showScanner} onClose={() => setShowScanner(false)} size="xl">
         <ModalOverlay />
         <ModalContent>
@@ -592,7 +598,6 @@ export default function App() {
         </ModalContent>
       </Modal>
 
-      {/* CLASS MODAL */}
       <Modal isOpen={isClassModalOpen} onClose={onClassModalClose}>
         <ModalOverlay />
         <ModalContent>
@@ -607,7 +612,6 @@ export default function App() {
         </ModalContent>
       </Modal>
 
-      {/* SAVE STUDY SET MODAL */}
       <Modal isOpen={isSaveModalOpen} onClose={onSaveModalClose}>
         <ModalOverlay />
         <ModalContent>

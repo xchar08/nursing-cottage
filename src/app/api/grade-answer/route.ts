@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
-const apiKey = process.env.NEBIUS_API_KEY;
+const apiKey = process.env.CEREBRAS_API_KEY;
 const client = new OpenAI({
-  baseURL: "https://api.studio.nebius.ai/v1",
+  baseURL: "https://api.cerebras.ai/v1",
   apiKey: apiKey || "dummy",
 });
 
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const { userAnswer, modelAnswer, question } = await req.json();
 
     const completion = await client.chat.completions.create({
-      model: "meta-llama/Llama-3.3-70B-Instruct",
+      model: "llama-3.3-70b", // UPDATED MODEL ID
       messages: [
         { role: "system", content: "You are a strict grader. Output ONLY valid JSON." },
         { role: "user", content: `
