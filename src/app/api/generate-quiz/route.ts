@@ -9,26 +9,31 @@ const client = new OpenAI({
 
 // 1. Helper to generate the list of topics
 async function extractTopics(text: string, mode: string): Promise<string[]> {
-  const completion = await client.chat.completions.create({
-    model: "llama-3.3-70b",
-    messages: [
-      { role: "system", content: "You are a curriculum planner." },
-      { role: "user", content: `
-        Analyze the following text and identify 5 to 8 DISTINCT, high-level topics or chapters.
-        Return ONLY a JSON object with an array of strings.
-        
-        Example: { "topics": ["Cardiovascular Anatomy", "Electrical Conduction", "Medications", "Patient Education"] }
-        
-        TEXT: ${text.substring(0, 15000)}
-      `}
-    ],
-    response_format: { type: "json_object" },
-    temperature: 0.1,
-  });
+  try {
+    const completion = await client.chat.completions.create({
+      model: "llama-3.3-70b",
+      messages: [
+        { role: "system", content: "You are a curriculum planner." },
+        { role: "user", content: `
+          Analyze the following text and identify 4 to 6 DISTINCT, high-level topics.
+          Return ONLY a JSON object with an array of strings.
+          
+          Example: { "topics": ["Anatomy", "Physiology", "Pathology"] }
+          
+          TEXT: ${text.substring(0, 15000)}
+        `}
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    });
 
-  const content = completion.choices[0].message.content || "{}";
-  const parsed = JSON.parse(content);
-  return parsed.topics || [];
+    const content = completion.choices[0].message.content || "{}";
+    const parsed = JSON.parse(content);
+    return parsed.topics || [];
+  } catch (e) {
+    console.error("Topic extraction failed:", e);
+    return ["General Knowledge"]; // Fallback
+  }
 }
 
 // 2. Helper to generate questions for a SPECIFIC topic
@@ -42,7 +47,7 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
   const prompt = `
     ${systemPersona}
     
-    Your Goal: Create 4 to 5 TOUGH questions specifically covering the topic: "${topic}".
+    Your Goal: Create 3 to 4 TOUGH questions specifically covering the topic: "${topic}".
     Source Material: Use the provided text.
     Question Types: ${types.join(", ")}.
     
@@ -51,7 +56,6 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
     2. Output valid JSON.
     3. 5 Options for Multiple Choice.
     4. For FRQ, provide 'modelAnswer'.
-    5. Do not repeat questions.
 
     Required JSON Structure:
     {
@@ -87,7 +91,7 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
     return data.questions || [];
   } catch (e) {
     console.error(`Failed to generate for topic ${topic}:`, e);
-    return []; // Return empty array on fail so we don't crash the whole process
+    return []; 
   }
 }
 
@@ -95,21 +99,27 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
 export async function POST(req: Request) {
   try {
     const { text, types, mode } = await req.json();
-    const truncatedText = text.substring(0, 45000);
+    const truncatedText = text.substring(0, 40000); // Reduced slightly to save tokens
 
     // Step 1: Get the Topics
     console.log("🔍 Extracting topics...");
-    const topics = await extractTopics(truncatedText, mode);
+    // We limit topics to 5 max to prevent hitting total timeouts
+    const allTopics = await extractTopics(truncatedText, mode);
+    const topics = allTopics.slice(0, 5); 
     console.log("✅ Topics found:", topics);
 
-    // Step 2: Generate Questions for ALL topics in Parallel
-    console.log(`🚀 Launching ${topics.length} parallel generation tasks...`);
+    // Step 2: Generate Questions SEQUENTIALLY to avoid Rate Limits (429)
+    console.log(`🚀 Processing ${topics.length} topics sequentially...`);
     
-    const questionPromises = topics.map((topic) => 
-      generateQuestionsForTopic(truncatedText, topic, types, mode)
-    );
-
-    const results = await Promise.all(questionPromises);
+    const results = [];
+    for (const topic of topics) {
+      console.log(`   -> Generating for: ${topic}`);
+      const questions = await generateQuestionsForTopic(truncatedText, topic, types, mode);
+      results.push(questions);
+      
+      // Optional: Tiny pause between requests just to be safe
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
 
     // Step 3: Flatten and ID the results
     let allQuestions = results.flat();
