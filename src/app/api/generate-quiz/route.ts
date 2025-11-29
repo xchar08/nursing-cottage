@@ -54,7 +54,9 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
     CRITICAL RULES:
     1. QUESTIONS MUST BE ABOUT "${topic}".
     2. Output valid JSON.
-    3. 5 Options for Multiple Choice.
+    3. **MULTIPLE CHOICE OPTIONS MUST BE FULL TEXT ANSWERS**, NOT JUST "A", "B", "C".
+       - BAD: ["A", "B", "C", "D"]
+       - GOOD: ["Mitral Valve", "Aortic Valve", "Tricuspid Valve", "Pulmonic Valve"]
     4. For FRQ, provide 'modelAnswer'.
 
     Required JSON Structure:
@@ -63,9 +65,9 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
         {
           "id": "1",
           "type": "multiple_choice",
-          "question": "...",
-          "options": ["A", "B", "C", "D", "E"],
-          "correctAnswer": "A"
+          "question": "Which valve...",
+          "options": ["Option text 1", "Option text 2", "Option text 3", "Option text 4"],
+          "correctAnswer": "Option text 1"
         }
       ]
     }
@@ -99,16 +101,20 @@ async function generateQuestionsForTopic(text: string, topic: string, types: str
 export async function POST(req: Request) {
   try {
     const { text, types, mode } = await req.json();
-    const truncatedText = text.substring(0, 40000); // Reduced slightly to save tokens
+    
+    if (!text || text.length < 50) {
+        return NextResponse.json({ error: "Text too short or empty." }, { status: 400 });
+    }
+
+    const truncatedText = text.substring(0, 40000);
 
     // Step 1: Get the Topics
     console.log("🔍 Extracting topics...");
-    // We limit topics to 5 max to prevent hitting total timeouts
     const allTopics = await extractTopics(truncatedText, mode);
     const topics = allTopics.slice(0, 5); 
     console.log("✅ Topics found:", topics);
 
-    // Step 2: Generate Questions SEQUENTIALLY to avoid Rate Limits (429)
+    // Step 2: Generate Questions SEQUENTIALLY
     console.log(`🚀 Processing ${topics.length} topics sequentially...`);
     
     const results = [];
@@ -117,14 +123,12 @@ export async function POST(req: Request) {
       const questions = await generateQuestionsForTopic(truncatedText, topic, types, mode);
       results.push(questions);
       
-      // Optional: Tiny pause between requests just to be safe
       await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     // Step 3: Flatten and ID the results
     let allQuestions = results.flat();
 
-    // Re-index IDs to be sequential (1, 2, 3...)
     allQuestions = allQuestions.map((q, index) => ({
       ...q,
       id: (index + 1).toString()
